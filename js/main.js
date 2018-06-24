@@ -6,6 +6,7 @@ var Tick = {
   maxRadius: 350,
   minRadius: 250,
   firstRender: true,
+  worker: new Worker('js/worker.js'),
   init () {
     this.canvas = document.querySelector('.canvas')
     this.ctx = this.canvas.getContext('2d')
@@ -20,7 +21,7 @@ var Tick = {
     this.cacheCtx = this.cacheCanvas.getContext('2d');
     this.cacheCanvas.width = this.width;
     this.cacheCanvas.height = this.height;
-    this.cacheCtx.lineWidth = 2
+    this.cacheCtx.lineWidth = 2;
     this.reset()
   },
   renderInnerCircle () {
@@ -33,6 +34,7 @@ var Tick = {
     this.lineCtx.closePath()
   },
   renderTick () {
+    this.clear();
     this.ctx.drawImage(this.cacheCanvas, 0, 0, this.width, this.height);
   },
   renderTime (time) {
@@ -52,27 +54,51 @@ var Tick = {
   },
   // 通过改变this.radius
   getTicksPostion () {
-    let ticks = []
-    let radius
+    let _t = this;
+    this.worker.postMessage({
+      currData: this.currData,
+      countTicks: this.countTicks,
+      maxRadius: this.maxRadius,
+      minRadius: this.minRadius,
+      rx: this.rx,
+      ry: this.ry,
+      tickLen: this.tickLen
+    })
+
     let scale = findMax(this.currData) / 240 || 1
-    for (let i = 0, len = this.countTicks, angle = 0; i < len; i++) {
-      radius = Math.max(Math.min(this.currData[i + 100] + 150, this.maxRadius), this.minRadius)
-      let tick = {}
-      tick.x1 = this.rx + radius * Math.cos(angle)
-      tick.y1 = this.ry + radius * Math.sin(angle)
-      tick.x2 = this.rx + (this.radius - this.tickLen) * Math.cos(angle)
-      tick.y2 = this.ry + (this.radius - this.tickLen) * Math.sin(angle)
-      ticks.push(tick)
-      angle += Math.PI / 180
-      if (scale > 1) {
-        this.canvas.style.transform = `scale(${scale})`
-        this.lineCanvas.style.transform = `scale(${scale})`
-      } else {
-        this.canvas.style.transform = `scale(1)`
-        this.lineCanvas.style.transform = `scale(1)`
-      }
+    if (scale > 1) {
+      this.canvas.style.transform = `scale(${scale})`
+      this.lineCanvas.style.transform = `scale(${scale})`
+    } else {
+      this.canvas.style.transform = `scale(1)`
+      this.lineCanvas.style.transform = `scale(1)`
     }
-    return ticks
+    return new Promise((resolve, reject) => {
+      _t.worker.onmessage = function (event) {
+        resolve(event.data)
+      }
+    })
+    // let ticks = []
+    // let radius
+    // let scale = findMax(this.currData) / 240 || 1
+    // for (let i = 0, len = this.countTicks, angle = 0; i < len; i++) {
+    //   radius = Math.max(Math.min(this.currData[i + 100] + 150, this.maxRadius), this.minRadius)
+    //   let tick = {}
+    //   tick.x1 = this.rx + radius * Math.cos(angle)
+    //   tick.y1 = this.ry + radius * Math.sin(angle)
+    //   tick.x2 = this.rx + (this.radius - this.tickLen) * Math.cos(angle)
+    //   tick.y2 = this.ry + (this.radius - this.tickLen) * Math.sin(angle)
+    //   ticks.push(tick)
+    //   angle += Math.PI / 180
+    //   if (scale > 1) {
+    //     this.canvas.style.transform = `scale(${scale})`
+    //     this.lineCanvas.style.transform = `scale(${scale})`
+    //   } else {
+    //     this.canvas.style.transform = `scale(1)`
+    //     this.lineCanvas.style.transform = `scale(1)`
+    //   }
+    // }
+    // return ticks
   },
   clear() {
     this.ctx.clearRect(0, 0, this.width, this.height)
@@ -83,33 +109,34 @@ var Tick = {
       this.perdeg = this.duration / this.PI
       this.firstRender = false;
     }
-    this.clear()
     this.cache()
-    this.renderTick()
-    this.renderTime(this.Time);
   },
   reset () {
     this.currData = Array(2048).fill(0)
     this.clear()
     this.renderInnerCircle()
     this.cache()
-    this.renderTick()
   },
   cache () {
-    this.cacheCtx.clearRect(0, 0, this.width, this.height);
-    let ticks = this.getTicksPostion()
-    for (let i = 0, len = ticks.length; i < len; i++) {
-      this.cacheCtx.beginPath()
-      let gradient = this.cacheCtx.createLinearGradient(ticks[i].x1, ticks[i].y1, ticks[i].x2, ticks[i].y2)
-      gradient.addColorStop(0, '#F5F5F5')
-      gradient.addColorStop(0.4, '#ab8674')
-      gradient.addColorStop(1, '#722423')
-      this.cacheCtx.strokeStyle = gradient
-      this.cacheCtx.moveTo(ticks[i].x1, ticks[i].y1)
-      this.cacheCtx.lineTo(ticks[i].x2, ticks[i].y2)
-      this.cacheCtx.stroke()
-      this.cacheCtx.closePath()
-    }
+    let _t = this;
+    _t.cacheCtx.clearRect(0, 0, _t.width, _t.height);
+    this.getTicksPostion().then((data) => {
+      let ticks = data;
+      for (let i = 0, len = ticks.length; i < len; i++) {
+        _t.cacheCtx.beginPath()
+        let gradient = _t.cacheCtx.createLinearGradient(ticks[i].x1, ticks[i].y1, ticks[i].x2, ticks[i].y2)
+        gradient.addColorStop(0, '#F5F5F5')
+        gradient.addColorStop(0.4, '#ab8674')
+        gradient.addColorStop(1, '#722423')
+        _t.cacheCtx.strokeStyle = gradient
+        _t.cacheCtx.moveTo(ticks[i].x1, ticks[i].y1)
+        _t.cacheCtx.lineTo(ticks[i].x2, ticks[i].y2)
+        _t.cacheCtx.stroke()
+        _t.cacheCtx.closePath()
+      }
+      _t.renderTick()
+      _t.renderTime(_t.Time);
+    })
   }
 }
 var SONGS = [
@@ -119,19 +146,19 @@ var SONGS = [
     url: 'http://m10.music.126.net/20180615111927/1f7d0d15914ddf59b1f3c44fe3b8822a/ymusic/ed49/d613/d738/86559a80228670dcc0c89a3997fd836a.mp3'
   },
   {
-    artist: 'Audio Machine',
-    name: 'Breath and Life',
-    url: 'http://m10.music.126.net/20180615011439/fe628bf2199d8203641c5a7d4e501408/ymusic/18ba/7e9f/69fd/75f095ea5e4031ec40a8f7b16e39ba81.mp3'
-  },
-  {
     artist: 'GRANiDELiA',
     name: '极乐净土',
     url: 'http://m10.music.126.net/20180615110735/814dc0559e55fbd37806b7b387cd65fd/ymusic/db40/34e5/08d0/2b87dad647d73fe4250167be43baf514.mp3'
+  },
+  {
+    artist: 'Audio Machine',
+    name: 'Breath and Life',
+    url: 'http://m10.music.126.net/20180615011439/fe628bf2199d8203641c5a7d4e501408/ymusic/18ba/7e9f/69fd/75f095ea5e4031ec40a8f7b16e39ba81.mp3'
   }
 ]
 var MusicPlayer = {
-  i: 0,
-  currentSongIndex: 0,
+  i: 1,
+  currentSongIndex: 1,
   duration: 0,
   drawcaf: null,
   firstStart: true,
@@ -197,6 +224,9 @@ var MusicPlayer = {
         _t.initFlag.hide();
         _t.initInfo()
       })
+    }
+    xhr.onerror = function () {
+      _t.next()
     }
     xhr.send()
   },
