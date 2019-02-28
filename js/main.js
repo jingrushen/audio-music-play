@@ -6,7 +6,7 @@ var Tick = {
   maxRadius: 350,
   minRadius: 250,
   firstRender: true,
-  worker: new Worker('js/worker.js'),
+  worker: new Worker('./js/worker.js'),
   init () {
     this.canvas = document.querySelector('.canvas')
     this.ctx = this.canvas.getContext('2d')
@@ -143,17 +143,17 @@ var SONGS = [
   {
     artist: 'Michael',
     name: 'Stone Cold Funk',
-    url: 'http://m10.music.126.net/20180615111927/1f7d0d15914ddf59b1f3c44fe3b8822a/ymusic/ed49/d613/d738/86559a80228670dcc0c89a3997fd836a.mp3'
+    url: '../src/2.mp3'
   },
   {
     artist: 'GRANiDELiA',
     name: '极乐净土',
-    url: 'http://m10.music.126.net/20180615110735/814dc0559e55fbd37806b7b387cd65fd/ymusic/db40/34e5/08d0/2b87dad647d73fe4250167be43baf514.mp3'
+    url: '../src/1.mp3'
   },
   {
     artist: 'Audio Machine',
     name: 'Breath and Life',
-    url: 'http://m10.music.126.net/20180615011439/fe628bf2199d8203641c5a7d4e501408/ymusic/18ba/7e9f/69fd/75f095ea5e4031ec40a8f7b16e39ba81.mp3'
+    url: '../src/3.mp3'
   }
 ]
 var MusicPlayer = {
