@@ -143,17 +143,17 @@ var SONGS = [
   {
     artist: 'Michael',
     name: 'Stone Cold Funk',
-    url: './src/2.mp3'
+    url: 'src/2.mp3'
   },
   {
     artist: 'GRANiDELiA',
     name: '极乐净土',
-    url: './src/1.mp3'
+    url: 'src/1.mp3'
   },
   {
     artist: 'Audio Machine',
     name: 'Breath and Life',
-    url: './src/3.mp3'
+    url: 'src/3.mp3'
   }
 ]
 var MusicPlayer = {
